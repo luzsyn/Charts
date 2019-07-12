@@ -8,9 +8,12 @@
 //
 //  https://github.com/danielgindi/Charts
 //
-
 import Foundation
 import CoreGraphics
+
+#if !os(OSX)
+import UIKit
+#endif
 
 open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
 {
@@ -373,9 +376,9 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
         // draw the bar shadow before the values
         if dataProvider.isDrawBarShadowEnabled
         {
-            for j in stride(from: 0, to: buffer.rects.count, by: 1)
+            for firstIndexInBar in stride(from: 0, to: buffer.rects.count, by: 1)
             {
-                let barRect = buffer.rects[j]
+                let barRect = buffer.rects[firstIndexInBar]
                 
                 if (!viewPortHandler.isInBoundsLeft(barRect.origin.x + barRect.size.width))
                 {
@@ -398,53 +401,81 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
         {
             context.setFillColor(dataSet.color(atIndex: 0).cgColor)
         }
-
+        
+        context.setStrokeColor(borderColor.cgColor)
+        context.setLineWidth(borderWidth)
+        context.setLineCap(.square)
+        
         // In case the chart is stacked, we need to accomodate individual bars within accessibilityOrdereredElements
         let isStacked = dataSet.isStacked
         let stackSize = isStacked ? dataSet.stackSize : 1
 
-        for j in stride(from: 0, to: buffer.rects.count, by: 1)
+        for firstIndexInBar in stride(from: 0, to: buffer.rects.count, by: stackSize)
         {
-            let barRect = buffer.rects[j]
-
-            if (!viewPortHandler.isInBoundsLeft(barRect.origin.x + barRect.size.width))
-            {
-                continue
+            context.saveGState()
+            
+            let lastIndexInBar = firstIndexInBar + stackSize - 1
+            
+            
+            let topRectInBar = findTopRectInBar(barRects: buffer.rects,
+                                                firstIndexInBar: firstIndexInBar,
+                                                lastIndexInBar: lastIndexInBar)
+            
+            let path = createBarPath(for: topRectInBar, roundedCorners: dataSet.roundedCorners)
+            
+            context.addPath(path.cgPath)
+            context.clip()
+            
+            for index in firstIndexInBar...lastIndexInBar {
+                
+                let barRect = buffer.rects[index]
+                
+                if (!viewPortHandler.isInBoundsLeft(barRect.origin.x + barRect.size.width))
+                {
+                    continue
+                }
+                
+                if (!viewPortHandler.isInBoundsRight(barRect.origin.x))
+                {
+                    break
+                }
+                
+                if !isSingleColor
+                {
+                    // Set the color for the currently drawn value. If the index is out of bounds, reuse colors.
+                    context.setFillColor(dataSet.color(atIndex: index).cgColor)
+                }
+                
+                context.addRect(barRect)
+                context.fillPath()
+                
+                if drawBorder {
+                    context.stroke(barRect)
+                }
+                
+                // Create and append the corresponding accessibility element to accessibilityOrderedElements
+                if let chart = dataProvider as? BarChartView
+                {
+                    let element = createAccessibleElement(withIndex: index,
+                                                          container: chart,
+                                                          dataSet: dataSet,
+                                                          dataSetIndex: index,
+                                                          stackSize: stackSize)
+                    { (element) in
+                        element.accessibilityFrame = barRect
+                    }
+                    
+                    accessibilityOrderedElements[index/stackSize].append(element)
+                }
+                
             }
             
-            if (!viewPortHandler.isInBoundsRight(barRect.origin.x))
-            {
-                break
-            }
-            
-            if !isSingleColor
-            {
-                // Set the color for the currently drawn value. If the index is out of bounds, reuse colors.
-                context.setFillColor(dataSet.color(atIndex: j).cgColor)
-            }
-            
-            context.fill(barRect)
+            context.restoreGState()
             
             if drawBorder
             {
-                context.setStrokeColor(borderColor.cgColor)
-                context.setLineWidth(borderWidth)
-                context.stroke(barRect)
-            }
-
-            // Create and append the corresponding accessibility element to accessibilityOrderedElements
-            if let chart = dataProvider as? BarChartView
-            {
-                let element = createAccessibleElement(withIndex: j,
-                                                      container: chart,
-                                                      dataSet: dataSet,
-                                                      dataSetIndex: index,
-                                                      stackSize: stackSize)
-                { (element) in
-                    element.accessibilityFrame = barRect
-                }
-
-                accessibilityOrderedElements[j/stackSize].append(element)
+                context.addPath(path.cgPath)
+                context.strokePath()
             }
         }
         
@@ -453,11 +484,11 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
     
     open func prepareBarHighlight(
         x: Double,
-          y1: Double,
-          y2: Double,
-          barWidthHalf: Double,
-          trans: Transformer,
-          rect: inout CGRect)
+        y1: Double,
+        y2: Double,
+        barWidthHalf: Double,
+        trans: Transformer,
+        rect: inout CGRect)
     {
         let left = x - barWidthHalf
         let right = x + barWidthHalf
@@ -471,7 +502,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
         
         trans.rectValueToPixel(&rect, phaseY: animator.phaseY )
     }
-
+    
     open override func drawValues(context: CGContext)
     {
         // if values are drawn
@@ -481,9 +512,9 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                 let dataProvider = dataProvider,
                 let barData = dataProvider.barData
                 else { return }
-
+            
             var dataSets = barData.dataSets
-
+            
             let valueOffsetPlus: CGFloat = 4.5
             var posOffset: CGFloat
             var negOffset: CGFloat
@@ -491,10 +522,12 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
             
             for dataSetIndex in 0 ..< barData.dataSetCount
             {
-                guard let
-                    dataSet = dataSets[dataSetIndex] as? IBarChartDataSet,
-                    shouldDrawValues(forDataSet: dataSet)
-                    else { continue }
+                guard let dataSet = dataSets[dataSetIndex] as? IBarChartDataSet else { continue }
+                
+                if !shouldDrawValues(forDataSet: dataSet)
+                {
+                    continue
+                }
                 
                 let isInverted = dataProvider.isInverted(axis: dataSet.axisDependency)
                 
@@ -519,7 +552,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                 let phaseY = animator.phaseY
                 
                 let iconsOffset = dataSet.iconsOffset
-        
+                
                 // if only single values are drawn (sum)
                 if !dataSet.isStacked
                 {
@@ -799,36 +832,46 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                     y2 = 0.0
                 }
                 
-                prepareBarHighlight(x: e.x, y1: y1, y2: y2, barWidthHalf: barData.barWidth / 2.0, trans: trans, rect: &barRect)
+                prepareBarHighlight(x: e.x, y1: e.positiveSum, y2: -e.negativeSum, barWidthHalf: barData.barWidth / 2.0, trans: trans, rect: &barRect)
                 
-                setHighlightDrawPos(highlight: high, barRect: barRect)
+                var highlightRect = CGRect()
+                prepareBarHighlight(x: e.x, y1: y1, y2: y2, barWidthHalf: barData.barWidth / 2.0, trans: trans, rect: &highlightRect)
+                setHighlightDrawPos(highlight: high, barRect: highlightRect)
                 
-                context.fill(barRect)
+                let path = createBarPath(for: barRect, roundedCorners: set.roundedCorners)
+                
+                context.saveGState()
+                
+                context.addPath(path.cgPath)
+                context.clip()
+                context.fill(highlightRect)
+                
+                context.restoreGState()
             }
         }
         
         context.restoreGState()
     }
-
+    
     /// Sets the drawing position of the highlight object based on the given bar-rect.
     internal func setHighlightDrawPos(highlight high: Highlight, barRect: CGRect)
     {
         high.setDraw(x: barRect.midX, y: barRect.origin.y)
     }
-
+    
     /// Creates a nested array of empty subarrays each of which will be populated with NSUIAccessibilityElements.
     /// This is marked internal to support HorizontalBarChartRenderer as well.
     internal func accessibilityCreateEmptyOrderedElements() -> [[NSUIAccessibilityElement]]
     {
         guard let chart = dataProvider as? BarChartView else { return [] }
-
+        
         // Unlike Bubble & Line charts, here we use the maximum entry count to account for stacked bars
         let maxEntryCount = chart.data?.maxEntryCountSet?.entryCount ?? 0
-
+        
         return Array(repeating: [NSUIAccessibilityElement](),
                      count: maxEntryCount)
     }
-
+    
     /// Creates an NSUIAccessibleElement representing the smallest meaningful bar of the chart
     /// i.e. in case of a stacked chart, this returns each stack, not the combined bar.
     /// Note that it is marked internal to support subclass modification in the HorizontalBarChart.
@@ -841,25 +884,25 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
     {
         let element = NSUIAccessibilityElement(accessibilityContainer: container)
         let xAxis = container.xAxis
-
+        
         guard let e = dataSet.entryForIndex(idx/stackSize) as? BarChartDataEntry else { return element }
         guard let dataProvider = dataProvider else { return element }
-
+        
         // NOTE: The formatter can cause issues when the x-axis labels are consecutive ints.
         // i.e. due to the Double conversion, if there are more than one data set that are grouped,
         // there is the possibility of some labels being rounded up. A floor() might fix this, but seems to be a brute force solution.
         let label = xAxis.valueFormatter?.stringForValue(e.x, axis: xAxis) ?? "\(e.x)"
-
+        
         var elementValueText = dataSet.valueFormatter?.stringForValue(
             e.y,
             entry: e,
             dataSetIndex: dataSetIndex,
             viewPortHandler: viewPortHandler) ?? "\(e.y)"
-
+        
         if dataSet.isStacked, let vals = e.yValues
         {
             let labelCount = min(dataSet.colors.count, stackSize)
-
+            
             let stackLabel: String?
             if (dataSet.stackLabels.count > 0 && labelCount > 0) {
                 let labelIndex = idx % labelCount
@@ -867,27 +910,55 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
             } else {
                 stackLabel = nil
             }
-
+            
             elementValueText = dataSet.valueFormatter?.stringForValue(
                 vals[idx % stackSize],
                 entry: e,
                 dataSetIndex: dataSetIndex,
                 viewPortHandler: viewPortHandler) ?? "\(e.y)"
-
+            
             if let stackLabel = stackLabel {
                 elementValueText = stackLabel + " \(elementValueText)"
             } else {
                 elementValueText = "\(elementValueText)"
             }
         }
-
+        
         let dataSetCount = dataProvider.barData?.dataSetCount ?? -1
         let doesContainMultipleDataSets = dataSetCount > 1
-
+        
         element.accessibilityLabel = "\(doesContainMultipleDataSets ? (dataSet.label ?? "")  + ", " : "") \(label): \(elementValueText)"
-
+        
         modifier(element)
-
+        
         return element
+    }
+    
+    private func findTopRectInBar(barRects: [CGRect], firstIndexInBar: Int, lastIndexInBar: Int) -> CGRect {
+        var topRectInBar = barRects[firstIndexInBar]
+        if barRects[lastIndexInBar].origin.y < topRectInBar.origin.y {
+            topRectInBar = barRects[lastIndexInBar]
+        }
+        
+        var height: CGFloat = 0
+        for index in firstIndexInBar...lastIndexInBar {
+            height += barRects[index].height
+        }
+        
+        topRectInBar.size.height = height
+        
+        return topRectInBar
+    }
+    
+    /// Creates path for bar in rect with rounded corners
+    internal func createBarPath(for rect: CGRect, roundedCorners: UIRectCorner) -> UIBezierPath {
+        
+        let cornerRadius = rect.width / 2.0
+        
+        let path = UIBezierPath(roundedRect: rect,
+                                byRoundingCorners: roundedCorners,
+                                cornerRadii: CGSize(width: cornerRadius, height: cornerRadius))
+        
+        return path
     }
 }
