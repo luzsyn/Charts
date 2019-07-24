@@ -99,6 +99,9 @@ open class LineChartRenderer: LineRadarRenderer
         
         // get the color that is specified for this position from the DataSet
         let drawingColor = dataSet.colors.first!
+        let shadowOffset = dataSet.shadowOffset
+        let shadowColor = dataSet.shadowColor
+        let shadowRadius = dataSet.shadowRadius
         
         let intensity = dataSet.cubicIntensity
         
@@ -176,6 +179,9 @@ open class LineChartRenderer: LineRadarRenderer
         context.beginPath()
         context.addPath(cubicPath)
         context.setStrokeColor(drawingColor.cgColor)
+        if let shadowColor = shadowColor {
+            context.setShadow(offset: shadowOffset, blur: shadowRadius, color: shadowColor.cgColor)
+        }
         context.strokePath()
         
         context.restoreGState()

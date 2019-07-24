@@ -151,6 +151,13 @@ open class LineChartDataSet: LineRadarChartDataSet, ILineChartDataSet
         }
     }
     
+    /// Line shadow
+    public var shadowColor: NSUIColor?
+    
+    public var shadowOffset: CGSize = CGSize(width: 0, height: 0)
+    
+    public var shadowRadius: CGFloat = 0.0
+    
     // MARK: NSCopying
     
     open override func copy(with zone: NSZone? = nil) -> Any
