@@ -61,6 +61,7 @@
     xAxis.granularity = 1.0; // only intervals of 1 day
     xAxis.labelCount = 7;
     xAxis.valueFormatter = [[DayAxisValueFormatter alloc] initForChart:_chartView];
+    xAxis.drawGridLinesEnabled = YES;
     
     NSNumberFormatter *leftAxisFormatter = [[NSNumberFormatter alloc] init];
     leftAxisFormatter.minimumFractionDigits = 0;
