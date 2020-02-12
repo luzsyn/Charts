@@ -76,6 +76,7 @@
     xAxis.granularity = 1.f;
     xAxis.centerAxisLabelsEnabled = YES;
     xAxis.valueFormatter = [[IntAxisValueFormatter alloc] init];
+    xAxis.labelPosition = XAxisLabelPositionBottom;
     
     NSNumberFormatter *leftAxisFormatter = [[NSNumberFormatter alloc] init];
     leftAxisFormatter.maximumFractionDigits = 1;
@@ -153,12 +154,12 @@
     {
         set1 = (BarChartDataSet *)_chartView.data.dataSets[0];
         set2 = (BarChartDataSet *)_chartView.data.dataSets[1];
-        set3 = (BarChartDataSet *)_chartView.data.dataSets[2];
-        set4 = (BarChartDataSet *)_chartView.data.dataSets[3];
+//        set3 = (BarChartDataSet *)_chartView.data.dataSets[2];
+//        set4 = (BarChartDataSet *)_chartView.data.dataSets[3];
         [set1 replaceEntries:yVals1];
         [set2 replaceEntries:yVals2];
-        [set3 replaceEntries:yVals3];
-        [set4 replaceEntries:yVals4];
+//        [set3 replaceEntries:yVals3];
+//        [set4 replaceEntries:yVals4];
         
         BarChartData *data = _chartView.barData;
         
@@ -173,9 +174,11 @@
     {
         set1 = [[BarChartDataSet alloc] initWithEntries:yVals1 label:@"Company A"];
         [set1 setColor:[UIColor colorWithRed:104/255.f green:241/255.f blue:175/255.f alpha:1.f]];
+        set1.drawValuesEnabled = NO;
         
         set2 = [[BarChartDataSet alloc] initWithEntries:yVals2 label:@"Company B"];
-        [set2 setColor:[UIColor colorWithRed:164/255.f green:228/255.f blue:251/255.f alpha:1.f]];
+        [set2 setColor:[UIColor redColor]];
+        set2.valueLabelAngle = 90;
         
         set3 = [[BarChartDataSet alloc] initWithEntries:yVals3 label:@"Company C"];
         [set3 setColor:[UIColor colorWithRed:242/255.f green:247/255.f blue:158/255.f alpha:1.f]];
@@ -186,8 +189,8 @@
         NSMutableArray *dataSets = [[NSMutableArray alloc] init];
         [dataSets addObject:set1];
         [dataSets addObject:set2];
-        [dataSets addObject:set3];
-        [dataSets addObject:set4];
+//        [dataSets addObject:set3];
+//        [dataSets addObject:set4];
         
         BarChartData *data = [[BarChartData alloc] initWithDataSets:dataSets];
         [data setValueFont:[UIFont fontWithName:@"HelveticaNeue-Light" size:10.f]];

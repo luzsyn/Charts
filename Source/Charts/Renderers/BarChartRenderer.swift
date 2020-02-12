@@ -531,6 +531,8 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                     continue
                 }
                 
+                let angleRadians = dataSet.valueLabelAngle.DEG2RAD
+                
                 let isInverted = dataProvider.isInverted(axis: dataSet.axisDependency)
                 
                 // calculate the correct offset depending on the draw position of the value
@@ -581,20 +583,36 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                         
                         if dataSet.isDrawValuesEnabled
                         {
+                            let value = formatter.stringForValue(
+                            val,
+                            entry: e,
+                            dataSetIndex: dataSetIndex,
+                            viewPortHandler: viewPortHandler)
+                            
+                            var xPos = x
+                            var yPos = val >= 0.0 ? (rect.origin.y + posOffset) : (rect.origin.y + rect.size.height + negOffset)
+                            
+                            if angleRadians != 0.0 {
+                                xPos = rect.origin.x + rect.size.width + rect.size.width / 2.0 + 3
+                                yPos = val >= 0.0 ? (rect.origin.y - posOffset) : (rect.origin.y + rect.size.height - negOffset)
+//                                yPos -= 3
+                                
+                                let valueHeight = value.size(withAttributes: [NSAttributedString.Key.font: valueFont]).width
+                                if valueHeight > rect.height {
+                                    //文本比柱子高
+                                    yPos -= (valueHeight - rect.height + valueHeight / 2.0)
+                                }
+                            }
                             drawValue(
                                 context: context,
-                                value: formatter.stringForValue(
-                                    val,
-                                    entry: e,
-                                    dataSetIndex: dataSetIndex,
-                                    viewPortHandler: viewPortHandler),
-                                xPos: x,
-                                yPos: val >= 0.0
-                                    ? (rect.origin.y + posOffset)
-                                    : (rect.origin.y + rect.size.height + negOffset),
+                                value: value,
+                                xPos: xPos,
+                                yPos: yPos,
                                 font: valueFont,
                                 align: .center,
-                                color: dataSet.valueTextColorAt(j))
+                                color: dataSet.valueTextColorAt(j),
+                                anchor: CGPoint(x: 0.5, y: 0.5),
+                                angleRadians: angleRadians)
                         }
                         
                         if let icon = e.icon, dataSet.isDrawIconsEnabled
@@ -660,7 +678,9 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                                         (e.y >= 0 ? posOffset : negOffset),
                                     font: valueFont,
                                     align: .center,
-                                    color: dataSet.valueTextColorAt(index))
+                                    color: dataSet.valueTextColorAt(index),
+                                    anchor: CGPoint(x: 0.5, y: 0.5),
+                                    angleRadians: angleRadians)
                             }
                             
                             if let icon = e.icon, dataSet.isDrawIconsEnabled
@@ -745,7 +765,9 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                                         yPos: y,
                                         font: valueFont,
                                         align: .center,
-                                        color: dataSet.valueTextColorAt(index))
+                                        color: dataSet.valueTextColorAt(index),
+                                        anchor: CGPoint(x: 0.5, y: 0.5),
+                                        angleRadians: angleRadians)
                                 }
                                 
                                 if let icon = e.icon, dataSet.isDrawIconsEnabled
@@ -768,9 +790,17 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
     }
     
     /// Draws a value at the specified x and y position.
-    @objc open func drawValue(context: CGContext, value: String, xPos: CGFloat, yPos: CGFloat, font: NSUIFont, align: NSTextAlignment, color: NSUIColor)
+    @objc open func drawValue(context: CGContext, value: String, xPos: CGFloat, yPos: CGFloat, font: NSUIFont, align: NSTextAlignment, color: NSUIColor, anchor: CGPoint = CGPoint(x: 0.5, y: 0.5), angleRadians: CGFloat = 0.0)
     {
-        ChartUtils.drawText(context: context, text: value, point: CGPoint(x: xPos, y: yPos), align: align, attributes: [NSAttributedString.Key.font: font, NSAttributedString.Key.foregroundColor: color])
+        if (angleRadians == 0.0)
+        {
+            ChartUtils.drawText(context: context, text: value, point: CGPoint(x: xPos, y: yPos), align: align, attributes: [NSAttributedString.Key.font: font, NSAttributedString.Key.foregroundColor: color])
+        }
+        else
+        {
+            ChartUtils.drawText(context: context, text: value, point: CGPoint(x: xPos, y: yPos), align: .left, attributes: [NSAttributedString.Key.font: font, NSAttributedString.Key.foregroundColor: color], anchor: anchor, angleRadians: angleRadians)
+
+        }
     }
     
     open override func drawExtras(context: CGContext)

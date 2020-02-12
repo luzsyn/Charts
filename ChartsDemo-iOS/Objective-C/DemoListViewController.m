@@ -33,6 +33,7 @@
 #import "LineChartTimeViewController.h"
 #import "LineChartFilledViewController.h"
 #import "HalfPieChartViewController.h"
+#import "CustomViewController.h"
 
 @interface DemoListViewController () <UITableViewDataSource, UITableViewDelegate>
 
@@ -49,6 +50,11 @@
     self.title = @"Charts Demonstration";
 
     self.itemDefs = @[
+                      @{
+                          @"title": @"My Chart",
+                          @"subtitle": @"xin ren xin shi",
+                          @"class": CustomViewController.class
+                          },
                       @{
                           @"title": @"Line Chart",
                           @"subtitle": @"A simple demonstration of the linechart.",

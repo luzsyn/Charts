@@ -171,7 +171,7 @@ open class ChartUtils
         NSUIGraphicsPopContext()
     }
     
-    open class func drawText(context: CGContext, text: String, point: CGPoint, align: NSTextAlignment, attributes: [NSAttributedString.Key : Any]?)
+    open class func drawText(context: CGContext, text: String, point: CGPoint, align: NSTextAlignment, attributes: [NSAttributedString.Key : Any]?, anchor: CGPoint = CGPoint(x: 0.5, y: 0.5), angleRadians: CGFloat = 0.0)
     {
         var point = point
         
@@ -184,11 +184,18 @@ open class ChartUtils
             point.x -= text.size(withAttributes: attributes).width
         }
         
-        NSUIGraphicsPushContext(context)
-        
-        (text as NSString).draw(at: point, withAttributes: attributes)
-        
-        NSUIGraphicsPopContext()
+        if angleRadians == 0.0
+        {
+            NSUIGraphicsPushContext(context)
+            
+            (text as NSString).draw(at: point, withAttributes: attributes)
+            
+            NSUIGraphicsPopContext()
+        }
+        else
+        {
+            drawText(context: context, text: text, point: point, attributes: attributes, anchor: anchor, angleRadians: angleRadians)
+        }
     }
     
     open class func drawText(context: CGContext, text: String, point: CGPoint, attributes: [NSAttributedString.Key : Any]?, anchor: CGPoint, angleRadians: CGFloat)
