@@ -595,7 +595,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                             if angleRadians != 0.0 {
                                 xPos = rect.origin.x + rect.size.width + rect.size.width / 2.0 + 3
                                 yPos = val >= 0.0 ? (rect.origin.y - posOffset) : (rect.origin.y + rect.size.height - negOffset)
-//                                yPos -= 3
+                                yPos -= 3
                                 
                                 let valueHeight = value.size(withAttributes: [NSAttributedString.Key.font: valueFont]).width
                                 if valueHeight > rect.height {
@@ -792,6 +792,10 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
     /// Draws a value at the specified x and y position.
     @objc open func drawValue(context: CGContext, value: String, xPos: CGFloat, yPos: CGFloat, font: NSUIFont, align: NSTextAlignment, color: NSUIColor, anchor: CGPoint = CGPoint(x: 0.5, y: 0.5), angleRadians: CGFloat = 0.0)
     {
+        if (value as NSString).doubleValue == 0.0 {
+            return
+        }
+        
         if (angleRadians == 0.0)
         {
             ChartUtils.drawText(context: context, text: value, point: CGPoint(x: xPos, y: yPos), align: align, attributes: [NSAttributedString.Key.font: font, NSAttributedString.Key.foregroundColor: color])

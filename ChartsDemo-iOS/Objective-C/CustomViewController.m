@@ -9,9 +9,12 @@
 #import "CustomViewController.h"
 #import "ChartsDemo_iOS-Swift.h"
 
-@interface CustomViewController ()<IChartAxisValueFormatter>
+@interface CustomViewController ()<IChartAxisValueFormatter, ChartViewDelegate>
 
 @property (nonatomic, strong) BarChartView *chartView;
+
+/*! data */
+@property (nonatomic, copy) NSArray *entryArr;
 
 @end
 
@@ -30,12 +33,12 @@
 {
     //组装柱状图数据
     //X轴上要显示多少条数据
-    NSUInteger xVals_count = 6;
+    NSUInteger xVals_count = 8;
     //对应Y轴上面需要显示的数据
     NSMutableArray *numberArr = [NSMutableArray array];
     NSMutableArray *rateArr = [NSMutableArray array];
     for (NSInteger i = 0; i < xVals_count; i++) {
-        BarChartDataEntry *entry1 = [[BarChartDataEntry alloc] initWithX:i y:arc4random_uniform(1000)];
+        BarChartDataEntry *entry1 = [[BarChartDataEntry alloc] initWithX:i y:arc4random_uniform(8)];
         [numberArr addObject:entry1];
         BarChartDataEntry *entry2 = [[BarChartDataEntry alloc] initWithX:i y:arc4random_uniform(100)];
         [rateArr addObject:entry2];
@@ -78,9 +81,9 @@
     BarChartData *data = [[BarChartData alloc] initWithDataSets:dataSets];
     //设置宽度   柱形之间的间隙占整个柱形(柱形+间隙)的比例
     // (barSpace + barWidth) * 系列数 + groupSpace = 1.00 -> interval per "group"
-    CGFloat barWidth = 0.15;
+    CGFloat barWidth = 0.1;
     CGFloat barSpace = 0.1;
-    CGFloat groupSpace = 0.5;
+    CGFloat groupSpace = 0.6;
     if (xVals_count < 5) {
         barWidth = 0.06 * xVals_count / 2.0;
         barSpace = 0.06 * xVals_count / 2.0;
@@ -123,6 +126,7 @@
         BarChartView *barChartView = [[BarChartView alloc] init];
         barChartView.frame = CGRectMake(15, [UIApplication sharedApplication].statusBarFrame.size.height + 44 + 20, [UIScreen mainScreen].bounds.size.width - 15, 240);
         barChartView.backgroundColor = [UIColor clearColor];
+        barChartView.delegate = self;
         
         barChartView.noDataText = @"暂无数据";
         barChartView.drawValueAboveBarEnabled = YES;
@@ -149,10 +153,12 @@
         //label文字颜色
 //        xAxis.labelTextColor = [UIColor thirdClassGray];
 //        xAxis.labelFont = [UIFont systemFontOfRatioSize:12];
-        xAxis.yOffset = 8;
+        xAxis.yOffset = 10;
         xAxis.granularity = 1.f;
         xAxis.centerAxisLabelsEnabled = YES;
         //        xAxis.wordWrapEnabled = YES;
+        xAxis.drawLabelBackgroundEnabled = YES;
+        xAxis.labelBackgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.05];
         
         //左边Y轴
         ChartYAxis *leftAxis = barChartView.leftAxis;
@@ -199,6 +205,8 @@
         //不显示图例说明
         barChartView.legend.enabled = NO;
         
+        barChartView.extraBottomOffset = 8;
+        
         _chartView = barChartView;
     }
     return _chartView;
@@ -209,7 +217,15 @@
 - (NSString *)stringForValue:(double)value axis:(ChartAxisBase *)axis
 {
     if (value < 0) return @"";
-    return @"前端组";
+    return @[@"前端组", @"App组", @"说呢过吃组", @"运维组", @"aaa组", @"bbbbbb组", @"111222333", @"UI设计组", @"产品组", @"运营组"][(int)value];
 }
+
+#pragma mark - ChartViewDelegate
+
+- (void)chartValueSelected:(ChartViewBase * __nonnull)chartView entry:(ChartDataEntry * __nonnull)entry highlight:(ChartHighlight * __nonnull)highlight
+{
+    NSLog(@"chartValueSelected：%@", @(highlight.dataSetIndex));
+}
+
 
 @end

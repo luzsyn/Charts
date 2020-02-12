@@ -233,7 +233,7 @@
 
 - (void)chartValueSelected:(ChartViewBase * __nonnull)chartView entry:(ChartDataEntry * __nonnull)entry highlight:(ChartHighlight * __nonnull)highlight
 {
-    NSLog(@"chartValueSelected");
+    NSLog(@"chartValueSelected：%@", @(highlight.dataSetIndex));
 }
 
 - (void)chartValueNothingSelected:(ChartViewBase * __nonnull)chartView

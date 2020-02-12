@@ -241,6 +241,19 @@ open class XAxisRenderer: AxisRendererBase
                     }
                 }
                 
+                if xAxis.drawLabelBackgroundEnabled
+                {
+                    drawLabelBackground(context: context,
+                    formattedLabel: label,
+                    x: position.x,
+                    y: pos,
+                    attributes: labelAttrs,
+                    constrainedToSize: labelMaxSize,
+                    anchor: anchor,
+                    angleRadians: labelRotationAngleRadians,
+                    backgroundColor: xAxis.labelBackgroundColor)
+                }
+                
                 drawLabel(context: context,
                           formattedLabel: label,
                           x: position.x,
@@ -271,6 +284,35 @@ open class XAxisRenderer: AxisRendererBase
             constrainedToSize: constrainedToSize,
             anchor: anchor,
             angleRadians: angleRadians)
+    }
+    
+    @objc open func drawLabelBackground(
+        context: CGContext,
+        formattedLabel: String,
+        x: CGFloat,
+        y: CGFloat,
+        attributes: [NSAttributedString.Key : Any],
+        constrainedToSize: CGSize,
+        anchor: CGPoint,
+        angleRadians: CGFloat,
+        backgroundColor: NSUIColor)
+    {
+        guard formattedLabel.count > 0 else { return }
+        
+        let maxVisiableRange = CGFloat(self.axis!.axisRange) / viewPortHandler.minScaleX
+        var maxWidth = viewPortHandler.contentWidth / maxVisiableRange
+        maxWidth -= 2 //left some space
+        
+        ChartUtils.drawTextBackground(
+            context: context,
+            text: formattedLabel,
+            point: CGPoint(x: x, y: y),
+            attributes: attributes,
+            constrainedToSize: constrainedToSize,
+            anchor: anchor,
+            angleRadians: angleRadians,
+            backgroundColor: backgroundColor,
+            textMaxWidth: maxWidth)
     }
     
     open override func renderGridLines(context: CGContext)

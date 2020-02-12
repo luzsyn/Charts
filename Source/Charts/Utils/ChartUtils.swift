@@ -303,6 +303,61 @@ open class ChartUtils
         let rect = text.boundingRect(with: constrainedToSize, options: .usesLineFragmentOrigin, attributes: attributes, context: nil)
         drawMultilineText(context: context, text: text, knownTextSize: rect.size, point: point, attributes: attributes, constrainedToSize: constrainedToSize, anchor: anchor, angleRadians: angleRadians)
     }
+    
+    internal class func drawTextBackground(context: CGContext, text: String, point: CGPoint, attributes: [NSAttributedString.Key : Any]?, constrainedToSize: CGSize, anchor: CGPoint, angleRadians: CGFloat, backgroundColor: NSUIColor, textMaxWidth: CGFloat)
+    {
+        let knownTextSize = text.boundingRect(with: constrainedToSize, options: .usesLineFragmentOrigin, attributes: attributes, context: nil).size
+        var rect = CGRect(origin: CGPoint(), size: knownTextSize)
+        
+        if angleRadians != 0.0
+        {
+            // Move the text drawing rect in a way that it always rotates around its center
+            rect.origin.x = -knownTextSize.width * 0.5
+            rect.origin.y = -knownTextSize.height * 0.5
+            
+            var translate = point
+            
+            // Move the "outer" rect relative to the anchor, assuming its centered
+            if anchor.x != 0.5 || anchor.y != 0.5
+            {
+                let rotatedSize = knownTextSize.rotatedBy(radians: angleRadians)
+                
+                translate.x -= rotatedSize.width * (anchor.x - 0.5)
+                translate.y -= rotatedSize.height * (anchor.y - 0.5)
+            }
+            
+            context.saveGState()
+            context.translateBy(x: translate.x, y: translate.y)
+            context.rotate(by: angleRadians)
+            
+            context.restoreGState()
+        }
+        else
+        {
+            if anchor.x != 0.0 || anchor.y != 0.0
+            {
+                rect.origin.x = -knownTextSize.width * anchor.x
+                rect.origin.y = -knownTextSize.height * anchor.y
+            }
+            
+            rect.origin.x += point.x
+            rect.origin.y += point.y
+        }
+        
+        //draw background
+        context.setLineWidth(1.0)
+        context.setFillColor(backgroundColor.cgColor)
+        context.setStrokeColor(UIColor.clear.cgColor)
+        
+        var roundedRect = rect.insetBy(dx: -6, dy: -5)
+        if roundedRect.width > textMaxWidth {
+            roundedRect = CGRect(origin: CGPoint(x: roundedRect.origin.x - (textMaxWidth - roundedRect.width)/2.0, y: roundedRect.origin.y), size: CGSize(width: textMaxWidth, height: roundedRect.height))
+        }
+        let clippath = UIBezierPath.init(roundedRect: roundedRect, byRoundingCorners: .allCorners, cornerRadii: roundedRect.size)
+        context.addPath(clippath.cgPath)
+        context.closePath()
+        context.drawPath(using: .fillStroke)
+    }
 
     private class func generateDefaultValueFormatter() -> IValueFormatter
     {
