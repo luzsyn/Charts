@@ -382,11 +382,14 @@ open class PieChartRenderer: DataRenderer
                 let transformedAngle = rotationAngle + angle * CGFloat(phaseY)
 
                 let value = usePercentValuesEnabled ? e.y / yValueSum * 100.0 : e.y
-                let valueText = formatter.stringForValue(
-                    value,
-                    entry: e,
-                    dataSetIndex: i,
-                    viewPortHandler: viewPortHandler)
+                var valueText = ""
+                if (pe != nil) && pe!.lineWidth > 0 {
+                    valueText = formatter.stringForValue(
+                        value,
+                        entry: e,
+                        dataSetIndex: i,
+                        viewPortHandler: viewPortHandler)
+                }
 
                 let sliceXBase = cos(transformedAngle.DEG2RAD)
                 let sliceYBase = sin(transformedAngle.DEG2RAD)
@@ -459,7 +462,7 @@ open class PieChartRenderer: DataRenderer
                         {
                             return
                         }
-                        context.setLineWidth(dataSet.valueLineWidth)
+                        context.setLineWidth(pe?.lineWidth ?? 0.0)
 
                         context.move(to: CGPoint(x: pt0.x, y: pt0.y))
                         context.addLine(to: CGPoint(x: pt1.x, y: pt1.y))

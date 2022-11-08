@@ -108,6 +108,9 @@ open class PieChartDataEntry: ChartDataEntry
         set { y = newValue }
     }
         
+    // lineWidth, ignore draw line and value when zero
+    @objc open var lineWidth: Double = 1.0
+    
     // MARK: NSCopying
     
     open override func copy(with zone: NSZone? = nil) -> Any
